@@ -47,7 +47,23 @@ module ad7768_if (
 
   output                  adc_clk,
   output  reg             adc_valid,
+  output  reg             adc_valid_0,
+  output  reg             adc_valid_1,
+  output  reg             adc_valid_2,
+  output  reg             adc_valid_3,
+  output  reg             adc_valid_4,
+  output  reg             adc_valid_5,
+  output  reg             adc_valid_6,
+  output  reg             adc_valid_7,
   output  reg [ 31:0]     adc_data,
+  output  reg [ 31:0]     adc_data_0,
+  output  reg [ 31:0]     adc_data_1,
+  output  reg [ 31:0]     adc_data_2,
+  output  reg [ 31:0]     adc_data_3,
+  output  reg [ 31:0]     adc_data_4,
+  output  reg [ 31:0]     adc_data_5,
+  output  reg [ 31:0]     adc_data_6,
+  output  reg [ 31:0]     adc_data_7,
   output                  adc_sync,
 
   // control interface
@@ -258,7 +274,39 @@ module ad7768_if (
   always @(posedge adc_clk) begin
     adc_valid <= adc_valid_int & adc_enable_int;
     adc_data <= {{8{adc_data_int[23]}}, adc_data_int[23:0]};
+    if (adc_ch_valid_0 == 1'b1) begin
+      adc_data_0 <= adc_ch_data_0;
+    end
+    if (adc_ch_valid_1 == 1'b1) begin
+      adc_data_1 <= adc_ch_data_1;
+    end
+    if (adc_ch_valid_2 == 1'b1) begin
+      adc_data_2 <= adc_ch_data_2;
+    end
+    if (adc_ch_valid_3 == 1'b1) begin
+      adc_data_3 <= adc_ch_data_3;
+    end
+    if (adc_ch_valid_4 == 1'b1) begin
+      adc_data_4 <= adc_ch_data_4;
+    end
+    if (adc_ch_valid_5 == 1'b1) begin
+      adc_data_5 <= adc_ch_data_5;
+    end
+    if (adc_ch_valid_6 == 1'b1) begin
+      adc_data_6 <= adc_ch_data_6;
+    end
+    if (adc_ch_valid_7 == 1'b1) begin
+      adc_data_7 <= adc_ch_data_7;
+    end
     adc_seq <= adc_seq_int;
+    adc_valid_0 <= adc_ch_valid_7;
+    adc_valid_1 <= adc_ch_valid_7;
+    adc_valid_2 <= adc_ch_valid_7;
+    adc_valid_3 <= adc_ch_valid_7;
+    adc_valid_4 <= adc_ch_valid_7;
+    adc_valid_5 <= adc_ch_valid_7;
+    adc_valid_6 <= adc_ch_valid_7;
+    adc_valid_7 <= adc_ch_valid_7;
     if ((adc_crc_enable == 1'b1) && (adc_crc_scnt_int == 4'd0)) begin
       adc_status[4] <= adc_crc_mismatch_8[7] & adc_enable_int;
       adc_status[3] <= 1'b0;
@@ -443,6 +491,7 @@ module ad7768_if (
       adc_ch_data <= 256'd0;
     end
   end
+
 
   // data (common)
 
