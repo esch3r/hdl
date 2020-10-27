@@ -79,7 +79,7 @@ adi_add_bus "rx_cfg" "master" \
     { "core_cfg_links_disable" "links_disable" } \
     { "core_cfg_octets_per_multiframe" "octets_per_multiframe" } \
     { "core_cfg_octets_per_frame" "octets_per_frame" } \
-    { "core_cfg_lmfc_offset" "lmfc_offset" } \
+    { "device_cfg_lmfc_offset" "lmfc_offset" } \
     { "core_cfg_sysref_oneshot" "sysref_oneshot" } \
     { "core_cfg_sysref_disable" "sysref_disable" } \
     { "core_ctrl_err_statistics_reset" "err_statistics_reset" } \
@@ -89,6 +89,7 @@ adi_add_bus "rx_cfg" "master" \
     { "core_cfg_disable_char_replacement" "disable_char_replacement" } \
     { "core_cfg_disable_scrambler" "disable_scrambler" } \
     { "core_cfg_frame_align_err_threshold" "frame_align_err_threshold" } \
+    { "device_cfg_beats_per_multiframe" "beats_per_multiframe" } \
   }
 
 adi_add_bus "rx_ilas_config" "slave" \
@@ -104,8 +105,8 @@ adi_add_bus "rx_event" "slave" \
   "analog.com:interface:jesd204_rx_event_rtl:1.0" \
   "analog.com:interface:jesd204_rx_event:1.0" \
   { \
-    { "core_event_sysref_alignment_error" "sysref_alignment_error" } \
-    { "core_event_sysref_edge" "sysref_edge" } \
+    { "device_event_sysref_alignment_error" "sysref_alignment_error" } \
+    { "device_event_sysref_edge" "sysref_edge" } \
     { "core_event_frame_alignment_error" "frame_alignment_error" } \
     { "core_event_unexpected_lane_state_error" "unexpected_lane_state_error" } \
   }

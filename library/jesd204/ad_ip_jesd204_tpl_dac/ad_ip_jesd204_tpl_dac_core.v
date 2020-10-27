@@ -33,6 +33,7 @@ module ad_ip_jesd204_tpl_dac_core #(
   parameter SAMPLES_PER_FRAME = 1,
   parameter OCTETS_PER_BEAT = 4,
   parameter DATA_PATH_WIDTH = 4,
+  parameter DMA_BITS_PER_SAMPLE = 16,
   parameter LINK_DATA_WIDTH = NUM_LANES * OCTETS_PER_BEAT * 8,
   parameter DMA_DATA_WIDTH = DATA_PATH_WIDTH * BITS_PER_SAMPLE * NUM_CHANNELS,
   parameter DDS_TYPE = 1,
@@ -82,7 +83,7 @@ module ad_ip_jesd204_tpl_dac_core #(
 
   localparam DAC_CDW = CONVERTER_RESOLUTION * DATA_PATH_WIDTH;
   localparam DAC_DATA_WIDTH = DAC_CDW * NUM_CHANNELS;
-  localparam DMA_CDW = DATA_PATH_WIDTH * BITS_PER_SAMPLE;
+  localparam DMA_CDW = DATA_PATH_WIDTH * DMA_BITS_PER_SAMPLE;
 
 
   wire [DAC_DATA_WIDTH-1:0] dac_data_s;

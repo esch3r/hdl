@@ -59,6 +59,7 @@ adi_if_ports output 1 skip_ilas
 adi_if_ports output 8 mframes_per_ilas
 adi_if_ports output 1 disable_char_replacement
 adi_if_ports output 1 disable_scrambler
+adi_if_ports output 8 beats_per_multiframe
 
 adi_if_define "jesd204_tx_ilas_config"
 adi_if_ports output 1 rd
@@ -91,6 +92,7 @@ adi_if_ports output 1 disable_scrambler
 adi_if_ports output 8 frame_align_err_threshold
 adi_if_ports output 1 err_statistics_reset
 adi_if_ports output 7 err_statistics_mask
+adi_if_ports output 8 beats_per_multiframe
 
 adi_if_define "jesd204_rx_status"
 adi_if_ports output 3 ctrl_state

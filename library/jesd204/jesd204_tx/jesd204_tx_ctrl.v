@@ -62,6 +62,7 @@ module jesd204_tx_ctrl #(
   output reg eof_reset,
 
   output reg tx_ready,
+  output tx_ready_nx,
 
   output reg [DATA_PATH_WIDTH*8*NUM_LANES-1:0] ilas_data,
   output reg [DATA_PATH_WIDTH*NUM_LANES-1:0] ilas_charisk,
@@ -123,6 +124,7 @@ i_cdc_sync (
   .out_resetn(1'b1),
   .out_bits(status_sync)
 );
+
 assign status_sync_masked = status_sync | cfg_links_disable;
 
 always @(posedge clk) begin
@@ -234,6 +236,8 @@ always @(posedge clk) begin
     end
   end
 end
+
+assign tx_ready_nx = tx_ready | (sync_request_received & lmfc_edge_d2 & (last_ilas_mframe == 1'b1 && cfg_continuous_ilas == 1'b0)); 
 
 always @(posedge clk) begin
   if (ilas_reset == 1'b1) begin

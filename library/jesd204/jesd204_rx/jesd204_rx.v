@@ -53,10 +53,15 @@ module jesd204_rx #(
   parameter DATA_PATH_WIDTH = LINK_MODE == 2 ? 8 : 4,
   parameter ENABLE_FRAME_ALIGN_CHECK = 1,
   parameter ENABLE_FRAME_ALIGN_ERR_RESET = 0,
-  parameter ENABLE_CHAR_REPLACE = 0
+  parameter ENABLE_CHAR_REPLACE = 0,
+  parameter DUAL_CLK_MODE = 0,
+  parameter OUT_DATA_PATH_WIDTH = LINK_MODE == 2 ? 8 : 4
 ) (
-  input clk,
+  input clk,   // Link clock, lane rate / 40 or lane rate / 20 or lane rate / 66
   input reset,
+
+  input device_clk, // Integer multiple of frame clock, used in dual clock mode
+  input device_reset,
 
   input [DATA_PATH_WIDTH*8*NUM_LANES-1:0] phy_data,
   input [2*NUM_LANES-1:0] phy_header,
@@ -69,8 +74,8 @@ module jesd204_rx #(
   output lmfc_edge,
   output lmfc_clk,
 
-  output event_sysref_alignment_error,
-  output event_sysref_edge,
+  output device_event_sysref_alignment_error,
+  output device_event_sysref_edge,
   output event_frame_alignment_error,
   output event_unexpected_lane_state_error,
 
@@ -78,24 +83,25 @@ module jesd204_rx #(
 
   output phy_en_char_align,
 
-  output [DATA_PATH_WIDTH*8*NUM_LANES-1:0] rx_data,
+  output [OUT_DATA_PATH_WIDTH*8*NUM_LANES-1:0] rx_data,
   output rx_valid,
-  output [DATA_PATH_WIDTH-1:0] rx_eof,
-  output [DATA_PATH_WIDTH-1:0] rx_sof,
-  output [DATA_PATH_WIDTH-1:0] rx_eomf,
-  output [DATA_PATH_WIDTH-1:0] rx_somf,
+  output [OUT_DATA_PATH_WIDTH-1:0] rx_eof,
+  output [OUT_DATA_PATH_WIDTH-1:0] rx_sof,
+  output [OUT_DATA_PATH_WIDTH-1:0] rx_eomf,
+  output [OUT_DATA_PATH_WIDTH-1:0] rx_somf,
 
   input [NUM_LANES-1:0] cfg_lanes_disable,
   input [NUM_LINKS-1:0] cfg_links_disable,
   input [9:0] cfg_octets_per_multiframe,
   input [7:0] cfg_octets_per_frame,
-  input [7:0] cfg_lmfc_offset,
+  input [7:0] device_cfg_lmfc_offset,
   input cfg_sysref_disable,
   input cfg_sysref_oneshot,
   input cfg_buffer_early_release,
   input [7:0] cfg_buffer_delay,
   input cfg_disable_char_replacement,
   input cfg_disable_scrambler,
+  input [7:0] device_cfg_beats_per_multiframe,
 
   input ctrl_err_statistics_reset,
   input [6:0] ctrl_err_statistics_mask,
@@ -146,6 +152,7 @@ localparam LMFC_COUNTER_WIDTH = MAX_BEATS_PER_MULTIFRAME > 256 ? 9 :
 
 /* Helper for common expressions */
 localparam DW = 8*DATA_PATH_WIDTH*NUM_LANES;
+localparam ODW = 8*OUT_DATA_PATH_WIDTH*NUM_LANES;
 localparam CW = DATA_PATH_WIDTH*NUM_LANES;
 localparam HW = 2*NUM_LANES;
 
@@ -159,6 +166,7 @@ reg buffer_release_n = 1'b1;
 reg buffer_release_d1 = 1'b0;
 wire [NUM_LANES-1:0] buffer_ready_n;
 wire all_buffer_ready_n;
+wire dev_all_buffer_ready_n;
 
 reg eof_reset = 1'b1;
 
@@ -169,7 +177,7 @@ wire [CW-1:0] phy_notintable_r;
 wire [CW-1:0] phy_disperr_r;
 wire [NUM_LANES-1:0] phy_block_sync_r;
 
-wire [DW-1:0] rx_data_s;
+wire [ODW-1:0] rx_data_s;
 
 wire rx_valid_s = buffer_release_d1;
 
@@ -182,12 +190,24 @@ wire [NUM_LANES-1:0] ifs_ready;
 wire event_data_phase;
 wire err_statistics_reset;
 
+wire dev_clk;
+wire dev_reset;
+
 reg [NUM_LANES-1:0] frame_align_err_thresh_met = {NUM_LANES{1'b0}};
 reg [NUM_LANES-1:0] event_frame_alignment_error_per_lane = {NUM_LANES{1'b0}};
 
 reg buffer_release_opportunity = 1'b0;
 
-always @(posedge clk) begin
+generate if (DUAL_CLK_MODE) begin
+  assign dev_clk = device_clk;
+  assign dev_reset = device_reset;
+end else begin
+  assign dev_clk = clk;
+  assign dev_reset = reset;
+end
+endgenerate
+
+always @(posedge dev_clk) begin
   if (lmfc_counter == cfg_buffer_delay ||
       cfg_buffer_early_release == 1'b1) begin
     buffer_release_opportunity <= 1'b1;
@@ -198,12 +218,21 @@ end
 
 assign all_buffer_ready_n = |(buffer_ready_n & ~cfg_lanes_disable);
 
-always @(posedge clk) begin
-  if (reset == 1'b1) begin
+sync_bits #(
+  .NUM_OF_BITS (1))
+i_cdc_sync (
+  .in_bits(all_buffer_ready_n),
+  .out_clk(dev_clk),
+  .out_resetn(1'b1),
+  .out_bits(dev_all_buffer_ready_n)
+);
+
+always @(posedge dev_clk) begin
+  if (dev_reset == 1'b1) begin
     buffer_release_n <= 1'b1;
   end else begin
     if (buffer_release_opportunity == 1'b1) begin
-      buffer_release_n <= all_buffer_ready_n;
+      buffer_release_n <= dev_all_buffer_ready_n;
     end
   end
   buffer_release_d1 <= ~buffer_release_n;
@@ -234,10 +263,10 @@ pipeline_stage #(
 );
 
 pipeline_stage #(
-  .WIDTH(DW+1),
+  .WIDTH(ODW+1),
   .REGISTERED(1)
 ) i_output_pipeline_stage (
-  .clk(clk),
+  .clk(dev_clk),
   .in({
     rx_data_s,
     rx_valid_s
@@ -250,13 +279,14 @@ pipeline_stage #(
 
 jesd204_lmfc #(
   .LINK_MODE(LINK_MODE),
-  .DATA_PATH_WIDTH(DATA_PATH_WIDTH)
+  .DATA_PATH_WIDTH(OUT_DATA_PATH_WIDTH)
 ) i_lmfc (
-  .clk(clk),
-  .reset(reset),
+  .clk(dev_clk),
+  .reset(dev_reset),
 
   .cfg_octets_per_multiframe(cfg_octets_per_multiframe),
-  .cfg_lmfc_offset(cfg_lmfc_offset),
+  .cfg_beats_per_multiframe(device_cfg_beats_per_multiframe),
+  .cfg_lmfc_offset(device_cfg_lmfc_offset),
   .cfg_sysref_oneshot(cfg_sysref_oneshot),
   .cfg_sysref_disable(cfg_sysref_disable),
 
@@ -268,14 +298,14 @@ jesd204_lmfc #(
   .lmc_quarter_edge(),
   .eoemb(),
 
-  .sysref_edge(event_sysref_edge),
-  .sysref_alignment_error(event_sysref_alignment_error)
+  .sysref_edge(device_event_sysref_edge),
+  .sysref_alignment_error(device_event_sysref_alignment_error)
 );
 
 jesd204_frame_mark #(
-  .DATA_PATH_WIDTH            (DATA_PATH_WIDTH)
+  .DATA_PATH_WIDTH            (OUT_DATA_PATH_WIDTH)
 ) i_frame_mark (
-  .clk                        (clk),
+  .clk                        (dev_clk),
   .reset                      (eof_reset),
   .cfg_octets_per_multiframe  (cfg_octets_per_multiframe),
   .cfg_octets_per_frame       (cfg_octets_per_frame),
@@ -293,6 +323,15 @@ if (LINK_MODE[0] == 1) begin : mode_8b10b
 wire unexpected_lane_state_error;
 reg unexpected_lane_state_error_d = 1'b0;
 
+sync_event #(
+  .NUM_OF_EVENTS (1)
+) i_sync_lmfc (
+  .in_clk(dev_clk),
+  .in_event(lmfc_edge),
+  .out_clk(clk),
+  .out_event(lmfc_edge_synced)
+);
+
 jesd204_rx_ctrl #(
   .NUM_LANES(NUM_LANES),
   .NUM_LINKS(NUM_LINKS),
@@ -307,7 +346,7 @@ jesd204_rx_ctrl #(
   .phy_ready(1'b1),
   .phy_en_char_align(phy_en_char_align),
 
-  .lmfc_edge(lmfc_edge),
+  .lmfc_edge(lmfc_edge_synced),
   .frame_align_err_thresh_met(frame_align_err_thresh_met),
   .sync(sync),
 
@@ -330,11 +369,14 @@ for (i = 0; i < NUM_LANES; i = i + 1) begin: gen_lane
 
   localparam D_START = i * DATA_PATH_WIDTH*8;
   localparam D_STOP = D_START + DATA_PATH_WIDTH*8-1;
+  localparam OD_START = i * OUT_DATA_PATH_WIDTH*8;
+  localparam OD_STOP = OD_START + OUT_DATA_PATH_WIDTH*8-1;
   localparam C_START = i * DATA_PATH_WIDTH;
   localparam C_STOP = C_START + DATA_PATH_WIDTH-1;
 
   jesd204_rx_lane #(
     .DATA_PATH_WIDTH(DATA_PATH_WIDTH),
+    .OUT_DATA_PATH_WIDTH(OUT_DATA_PATH_WIDTH),
     .CHAR_INFO_REGISTERED(CHAR_INFO_REGISTERED),
     .ALIGN_MUX_REGISTERED(ALIGN_MUX_REGISTERED),
     .SCRAMBLER_REGISTERED(SCRAMBLER_REGISTERED),
@@ -344,6 +386,9 @@ for (i = 0; i < NUM_LANES; i = i + 1) begin: gen_lane
   ) i_lane (
     .clk(clk),
     .reset(reset),
+
+    .dev_clk(dev_clk),
+    .dev_reset(dev_reset),
 
     .phy_data(phy_data_r[D_STOP:D_START]),
     .phy_charisk(phy_charisk_r[C_STOP:C_START]),
@@ -355,7 +400,7 @@ for (i = 0; i < NUM_LANES; i = i + 1) begin: gen_lane
 
     .ifs_reset(ifs_reset[i]),
 
-    .rx_data(rx_data_s[D_STOP:D_START]),
+    .rx_data(rx_data_s[OD_STOP:OD_START]),
 
     .buffer_release_n(buffer_release_n),
     .buffer_ready_n(buffer_ready_n[i]),

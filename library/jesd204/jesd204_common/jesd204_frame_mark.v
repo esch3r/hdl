@@ -43,9 +43,15 @@
 //
 
 // Limitations:
-//   DATA_PATH_WIDTH = 4, 8
-//   F*K=4, multiples of DATA_PATH_WIDTH
-//   F=1,2,3,4,6, and multiples of DATA_PATH_WIDTH
+//  for DATA_PATH_WIDTH = 4, 8
+//    F*K=4, multiples of DATA_PATH_WIDTH
+//    F=1,2,3,4,6, and multiples of DATA_PATH_WIDTH
+//  for DATA_PATH_WIDTH = 6
+//    F=3,6
+//  for DATA_PATH_WIDTH = 12
+//    F=3,6,12
+
+
 
 `timescale 1ns/100ps
 

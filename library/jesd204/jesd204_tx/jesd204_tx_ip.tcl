@@ -50,8 +50,10 @@ adi_ip_files jesd204_tx [list \
   "jesd204_tx_lane.v" \
   "jesd204_tx_lane_64b.v" \
   "jesd204_tx_header.v" \
+  "jesd204_tx_gearbox.v" \
   "jesd204_tx_ctrl.v" \
   "jesd204_tx_constr.ttcl" \
+  "../../common/ad_upack.v" \
   "jesd204_tx.v"
 ]
 
@@ -93,7 +95,7 @@ adi_add_bus "tx_cfg" "slave" \
     { "cfg_links_disable" "links_disable" } \
     { "cfg_octets_per_multiframe" "octets_per_multiframe" } \
     { "cfg_octets_per_frame" "octets_per_frame" } \
-    { "cfg_lmfc_offset" "lmfc_offset" } \
+    { "device_cfg_lmfc_offset" "lmfc_offset" } \
     { "cfg_sysref_oneshot" "sysref_oneshot" } \
     { "cfg_sysref_disable" "sysref_disable" } \
     { "cfg_continuous_cgs" "continuous_cgs" } \
@@ -102,6 +104,7 @@ adi_add_bus "tx_cfg" "slave" \
     { "cfg_mframes_per_ilas" "mframes_per_ilas" } \
     { "cfg_disable_char_replacement" "disable_char_replacement" } \
     { "cfg_disable_scrambler" "disable_scrambler" } \
+    { "device_cfg_beats_per_multiframe" "beats_per_multiframe" } \
   }
 
 adi_add_bus "tx_ilas_config" "master" \
@@ -117,8 +120,8 @@ adi_add_bus "tx_event" "master" \
   "analog.com:interface:jesd204_tx_event_rtl:1.0" \
   "analog.com:interface:jesd204_tx_event:1.0" \
   { \
-    { "event_sysref_alignment_error" "sysref_alignment_error" } \
-    { "event_sysref_edge" "sysref_edge" } \
+    { "device_event_sysref_alignment_error" "sysref_alignment_error" } \
+    { "device_event_sysref_edge" "sysref_edge" } \
   }
 
 adi_add_bus "tx_status" "master" \

@@ -46,6 +46,7 @@
 
 module jesd204_rx_lane #(
   parameter DATA_PATH_WIDTH = 4,
+  parameter OUT_DATA_PATH_WIDTH = 4,
   parameter CHAR_INFO_REGISTERED = 0,
   parameter ALIGN_MUX_REGISTERED = 0,
   parameter SCRAMBLER_REGISTERED = 0,
@@ -55,6 +56,9 @@ module jesd204_rx_lane #(
 ) (
   input clk,
   input reset,
+
+  input dev_clk,
+  input dev_reset,
 
   input [DATA_PATH_WIDTH*8-1:0] phy_data,
   input [DATA_PATH_WIDTH-1:0] phy_charisk,
@@ -66,7 +70,7 @@ module jesd204_rx_lane #(
 
   input ifs_reset,
 
-  output [DATA_PATH_WIDTH*8-1:0] rx_data,
+  output [OUT_DATA_PATH_WIDTH*8-1:0] rx_data,
 
   output buffer_ready_n,
   input buffer_release_n,
@@ -304,11 +308,15 @@ pipeline_stage #(
 );
 
 elastic_buffer #(
-  .WIDTH(DATA_PATH_WIDTH*8),
+  .IWIDTH(DATA_PATH_WIDTH*8),
+  .OWIDTH(OUT_DATA_PATH_WIDTH*8),
   .SIZE(ELASTIC_BUFFER_SIZE)
 ) i_elastic_buffer (
   .clk(clk),
   .reset(reset),
+
+  .dev_clk(dev_clk),
+  .dev_reset(dev_reset),
 
   .wr_data(data_scrambled),
   .rd_data(rx_data),

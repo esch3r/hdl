@@ -61,6 +61,7 @@ adi_ip_files jesd204_rx [list \
   "jesd204_rx_frame_align.v" \
   "jesd204_rx_constr.ttcl" \
   "jesd204_rx.v" \
+  "../../common/ad_pack.v"
 ]
 
 adi_ip_properties_lite jesd204_rx
@@ -102,7 +103,7 @@ adi_add_bus "rx_cfg" "slave" \
     { "cfg_links_disable" "links_disable" } \
     { "cfg_octets_per_multiframe" "octets_per_multiframe" } \
     { "cfg_octets_per_frame" "octets_per_frame" } \
-    { "cfg_lmfc_offset" "lmfc_offset" } \
+    { "device_cfg_lmfc_offset" "lmfc_offset" } \
     { "cfg_sysref_oneshot" "sysref_oneshot" } \
     { "cfg_sysref_disable" "sysref_disable" } \
     { "cfg_buffer_delay" "buffer_delay" } \
@@ -112,6 +113,7 @@ adi_add_bus "rx_cfg" "slave" \
     { "ctrl_err_statistics_mask" "err_statistics_mask" } \
     { "cfg_disable_scrambler" "disable_scrambler" } \
     { "cfg_frame_align_err_threshold" "frame_align_err_threshold" } \
+    { "device_cfg_beats_per_multiframe" "beats_per_multiframe" } \
   }
 
 adi_add_bus "rx_status" "master" \
@@ -140,8 +142,8 @@ adi_add_bus "rx_event" "master" \
   "analog.com:interface:jesd204_rx_event_rtl:1.0" \
   "analog.com:interface:jesd204_rx_event:1.0" \
   { \
-    { "event_sysref_alignment_error" "sysref_alignment_error" } \
-    { "event_sysref_edge" "sysref_edge" } \
+    { "device_event_sysref_alignment_error" "sysref_alignment_error" } \
+    { "device_event_sysref_edge" "sysref_edge" } \
     { "event_frame_alignment_error" "frame_alignment_error" } \
     { "event_unexpected_lane_state_error" "unexpected_lane_state_error" } \
   }
